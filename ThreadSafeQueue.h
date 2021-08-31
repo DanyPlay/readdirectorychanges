@@ -53,12 +53,16 @@ public:
 	{
 		CComCritSecLock<CComAutoCriticalSection> lock( m_Crit, true );
 		push_back( c );
-		lock.Unlock();
+		// ensure atomic access to the queue by push_back() and pop_back().
+		// Suppose there is only one element afeter push_back(),
+		// the flowing operation will cause to a crash:
+		// thread A fails to ReleaseSemaphore() -> thread B pop() -> thread A pop_back().
+		//lock.Unlock();
 
 		if (!::ReleaseSemaphore(m_hSemaphore, 1, NULL))
 		{
 			// If the semaphore is full, then take back the entry.
-			lock.Lock();
+			//lock.Lock();
 			pop_back();
 			if (GetLastError() == ERROR_TOO_MANY_POSTS)
 			{
